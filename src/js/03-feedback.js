@@ -1,36 +1,39 @@
-import { throttle } from 'lodash';
+import throttle from 'lodash.throttle';
 
-const form = document.querySelector('.feedback-form');
-const email = document.querySelector('input[name="email"]');
-const message = document.querySelector('textarea[name="message"]');
-const LOCALSTORAGE_KEY = 'feedback-form-state';
+const formRef = document.querySelector('.feedback-form');
+const inputRef = document.querySelector('[name="email"]');
+const textAreaRef = document.querySelector('[name="message"]');
 
-form.addEventListener(
-    'input',
-    throttle(e => {
-        const objectToSave = { email: email.value, message: message.value };
-        localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(objectToSave));
-    }, 500)
-);
+onResetPage();
 
-form.addEventListener('submit', e => {
-    e.preventDefault();
-    console.log({ email: email.value, message: message.value });
-    form.reset();
-    localStorage.removeItem(LOCALSTORAGE_KEY);
-});
+formRef.addEventListener('input', throttle(onInputHandler, 500));
 
-const load = key => {
-    try {
-        const serializedState = localStorage.getItem(key);
-        return serializedState === null ? undefined : JSON.parse(serializedState);
-    } catch (error) {
-        console.error('Get state error: ', error.message);
-    }
+function onInputHandler(e) {
+    let currentLocalStorage = localStorage.setItem(
+        'feedback-form-state',
+        JSON.stringify({ email: inputRef.value, message: textAreaRef.value }),
+    );
+    currentLocalStorage ? JSON.parse(localStorage.getItem('feedback-form-state')) : {};
 };
 
-const storageData = load(LOCALSTORAGE_KEY);
-if (storageData) {
-    email.value = storageData.email;
-    message.value = storageData.message;
-}
+formRef.addEventListener('submit', onSubmitHandler);
+
+function onSubmitHandler(e) {
+    e.preventDefault();
+
+    const formData = new FormData(formRef);
+    formData.forEach((value, name) => console.log(value, name));
+
+    localStorage.removeItem('feedback-form-state');
+    e.currentTarget.reset();
+};
+
+function onResetPage() {
+    let currentLocalStorage = localStorage.getItem('feedback-form-state');
+    if (currentLocalStorage) {
+        currentLocalStorage = JSON.parse(currentLocalStorage);
+        Object.entries(currentLocalStorage).forEach(([name, value]) => {
+            formRef.elements[name].value = value;
+        });
+    }
+};
